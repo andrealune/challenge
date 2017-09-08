@@ -22,6 +22,7 @@
 			<table class="table">
 				<thead>
 					<th>#</th>
+					<th>Image</th>
 					<th>Title</th>
 					<th>Body</th>
 					<th>Created At</th>
@@ -29,11 +30,12 @@
 				</thead>
 
 				<tbody>
-					
+
 					@foreach ($posts as $post)
-						
+
 						<tr>
 							<th>{{ $post->id }}</th>
+							<td><img src="{{ route('post.image', ['post' => $post]) }}" width="80" /></td>
 							<td>{{ $post->title }}</td>
 							<td>{{ substr(strip_tags($post->body), 0, 50) }}{{ strlen(strip_tags($post->body)) > 50 ? "..." : "" }}</td>
 							<td>{{ date('M j, Y', strtotime($post->created_at)) }}</td>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
@@ -12,6 +13,8 @@ use App\Category;
 use Session;
 use Purifier;
 use Image;
+use Storage;
+use App\Events\PostCreatedEvent;
 
 class PostController extends Controller
 {
@@ -43,6 +46,34 @@ class PostController extends Controller
     }
 
     /**
+     * Save the provided image into the storage folder
+     * @method saveImage
+     * @param  UploadedFile $image The uploaded image
+     * @return String              The destination path
+     */
+    protected function saveImage(UploadedFile $image) {
+
+        $folder = date('/Y/m/d/');
+        Storage::makeDirectory($folder);
+
+        // A better way to do this is to let Laravel generate a unique
+        // filename and save it in the model the original filename.
+        $filename = $image->getClientOriginalName();
+        while (Storage::exists($folder . $filename)) {
+            $filename = basename($image->getClientOriginalName(), '.' . $image->getClientOriginalExtension()) . '-' . rand(1, 1000) . '.' . $image->getClientOriginalExtension();
+        }
+
+        $location = $folder . $filename;
+
+        // I kept the resize as I though it was the right thing to do
+        // instead of showing a 10+ megapixel image in a blog post
+        Image::make($image)->resize(800, 400)->save(storage_path('app/' . $location));
+
+        return $location;
+
+    }
+
+    /**
      * Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -55,7 +86,8 @@ class PostController extends Controller
                 'title'         => 'required|max:255',
                 'slug'          => 'required|alpha_dash|min:5|max:255|unique:posts,slug',
                 'category_id'   => 'required|integer',
-                'body'          => 'required'
+                'body'          => 'required',
+                'featured_img'  => 'required|file'
             ));
 
         // store in the database
@@ -66,13 +98,8 @@ class PostController extends Controller
         $post->category_id = $request->category_id;
         $post->body = Purifier::clean($request->body);
 
-        if ($request->hasFile('featured_img')) {
-          $image = $request->file('featured_img');
-          $filename = time() . '.' . $image->getClientOriginalExtension();
-          $location = public_path('images/' . $filename);
-          Image::make($image)->resize(800, 400)->save($location);
-
-          $post->image = $filename;
+        if ($request->hasFile('featured_img') && $request->file('featured_img')->isValid()) {
+            $post->image = $this->saveImage($request->file('featured_img'));
         }
 
         $post->save();
@@ -81,6 +108,8 @@ class PostController extends Controller
             $post->tags()->sync($request->tags, false);
 
         Session::flash('success', 'The blog post was successfully save!');
+
+        event(new PostCreatedEvent($post, $request->user()));
 
         return redirect()->route('posts.show', $post->id);
     }
@@ -95,6 +124,23 @@ class PostController extends Controller
     {
         $post = Post::find($id);
         return view('posts.show')->withPost($post);
+    }
+
+    /**
+     * Display the post image.
+     *
+     * @param  Post  $post     The selected post
+     * @return \Illuminate\Http\Response
+     */
+    public function showImage(Post $post)
+    {
+
+        if (Storage::exists($post->image)) {
+            return response()->file(storage_path('app/' . $post->image));
+        }
+
+        return redirect(asset('img/empty.png'));
+
     }
 
     /**
@@ -131,6 +177,7 @@ class PostController extends Controller
      */
     public function update(Request $request, $id)
     {
+
         // Validate the data
         $post = Post::find($id);
 
@@ -138,14 +185,16 @@ class PostController extends Controller
             $this->validate($request, array(
                 'title' => 'required|max:255',
                 'category_id' => 'required|integer',
-                'body'  => 'required'
+                'body'  => 'required',
+                'featured_img' => 'required|file',
             ));
         } else {
         $this->validate($request, array(
                 'title' => 'required|max:255',
                 'slug'  => 'required|alpha_dash|min:5|max:255|unique:posts,slug',
                 'category_id' => 'required|integer',
-                'body'  => 'required'
+                'body'  => 'required',
+                'featured_img' => 'required|file',
             ));
         }
 
@@ -156,6 +205,17 @@ class PostController extends Controller
         $post->slug = $request->input('slug');
         $post->category_id = $request->input('category_id');
         $post->body = Purifier::clean($request->input('body'));
+
+        if ($request->hasFile('featured_img') && $request->file('featured_img')->isValid()) {
+
+            // Delete the old file if exists.
+            if (Storage::exists($post->image)) {
+                Storage::delete($post->image);
+            }
+    dd($request->file('featured_img'));
+            $post->image = $this->saveImage($request->file('featured_img'));
+
+        }
 
         $post->save();
 

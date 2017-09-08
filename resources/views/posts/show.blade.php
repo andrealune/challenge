@@ -7,11 +7,12 @@
 	<div class="row">
 		<div class="col-md-8">
 			<h1>{{ $post->title }}</h1>
-			
+
+			<p><img src="{{ route('post.image', ['post' => $post]) }}" style="max-width: 100%"></p>
 			<p class="lead">{!! $post->body !!}</p>
 
 			<hr>
-			
+
 			<div class="tags">
 				@foreach ($post->tags as $tag)
 					<span class="label label-default">{{ $tag->name }}</span>

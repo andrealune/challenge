@@ -41,7 +41,7 @@ Route::group(['middleware' => ['web']], function () {
 	// Categories
 	Route::resource('categories', 'CategoryController', ['except' => ['create']]);
 	Route::resource('tags', 'TagController', ['except' => ['create']]);
-	
+
 	// Comments
 	Route::post('comments/{post_id}', ['uses' => 'CommentsController@store', 'as' => 'comments.store']);
 	Route::get('comments/{id}/edit', ['uses' => 'CommentsController@edit', 'as' => 'comments.edit']);
@@ -57,4 +57,5 @@ Route::group(['middleware' => ['web']], function () {
 	Route::get('about', 'PagesController@getAbout');
 	Route::get('/', 'PagesController@getIndex');
 	Route::resource('posts', 'PostController');
+	Route::get('posts/{post}/image', 'PostController@showImage')->name('post.image');
 });

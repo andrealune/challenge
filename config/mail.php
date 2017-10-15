@@ -54,7 +54,7 @@ return [
     |
     */
 
-    'from' => ['address' => 'noreply@jacurtis.com', 'name' => 'Laravel Application'],
+    'from' => ['address' => env('MAIL_USERNAME'), 'name' => 'New post'],
 
     /*
     |--------------------------------------------------------------------------

@@ -1,0 +1,1 @@
+<h3>New post has been created with this title: {{ $post->title }}</h3>

@@ -13,6 +13,8 @@ use Session;
 use Purifier;
 use Image;
 use File;
+use Mail;
+use Auth;
 
 class PostController extends Controller
 {
@@ -86,6 +88,11 @@ class PostController extends Controller
             $post->tags()->sync($request->tags, false);
 
         Session::flash('success', 'The blog post was successfully save!');
+        
+        $user = Auth::user();
+        Mail::send("emails.post",["post" => $post], function($m) use ($user){          
+          $m->to($user->email, $user->name)->subject("New post submitted!");
+        });
 
         return redirect()->route('posts.show', $post->id);
     }

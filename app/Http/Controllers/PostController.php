@@ -12,6 +12,7 @@ use App\Category;
 use Session;
 use Purifier;
 use Image;
+use File;
 
 class PostController extends Controller
 {
@@ -69,10 +70,14 @@ class PostController extends Controller
         if ($request->hasFile('featured_img')) {
           $image = $request->file('featured_img');
           $filename = time() . '.' . $image->getClientOriginalExtension();
-          $location = public_path('images/' . $filename);
-          Image::make($image)->resize(800, 400)->save($location);
+          $year = date("y");
+          $month = date("m");
+          $imageLocation = DIRECTORY_SEPARATOR.$year.DIRECTORY_SEPARATOR.$month;
+          $location = storage_path("app".DIRECTORY_SEPARATOR."public".$imageLocation);
+          if(!file_exists($location)) File::makeDirectory($location,0755,true);
+          Image::make($image)->resize(800, 400)->save($location.DIRECTORY_SEPARATOR.$filename);
 
-          $post->image = $filename;
+          $post->image = "public".$imageLocation.DIRECTORY_SEPARATOR.$filename;
         }
 
         $post->save();
